@@ -3,7 +3,7 @@ const HTTP_STATUS_CODE = {
   CREATED: 201,
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
-  SERVER_ERROR: 500,
+  INTERNAL_SERVER_ERROR: 500,
 };
 
 const HTTP_RESPONSE_MESSAGE = {
@@ -11,10 +11,10 @@ const HTTP_RESPONSE_MESSAGE = {
   USER_CREATED: "User created successfully",
   INVALID_CREDENTIALS: "Invalid credentials",
   ACCESS_DENIED: "Access denied",
-  SERVER_ERROR: "Server Error",
+  INTERNAL_INTERNAL_SERVER_ERROR: "Internal Server Error",
   LOGGED_OUT_SUCCESS: "Logged out successfully",
-  USER_LOGGED_IN_SUCCESS: "User logged in success",
-  ALREADY_LOGGED_OUT: "User already logout",
+  USER_LOGGED_IN_SUCCESS: "User logged in successfully",
+  ALREADY_LOGGED_OUT: "User already logged-out",
 };
 
 module.exports = {

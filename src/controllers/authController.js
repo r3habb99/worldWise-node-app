@@ -9,7 +9,7 @@ const {
 } = require("../constants/httpConstants");
 
 const register = async (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, password, age, gender, phone } = req.body;
 
   try {
     // Check if there is already a user with the same email
@@ -23,21 +23,29 @@ const register = async (req, res) => {
       );
     }
 
-    // If there is no existing user with the same email, create a new user
-    const user = new User({ email, password });
+    // Create a new user with all required fields
+    const user = new User({ name, email, password, age, gender, phone });
 
+    // Hash the password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
 
+    // Save the user to the database
     await user.save();
 
+    // Prepare response data
     const responseData = {
       user: {
         _id: user._id,
+        name: user.name,
         email: user.email,
+        age: user.age,
+        gender: user.gender,
+        phone: user.phone,
       },
     };
 
+    // Return success response
     return successResponse(
       res,
       HTTP_STATUS_CODE.CREATED,
@@ -46,10 +54,11 @@ const register = async (req, res) => {
     );
   } catch (error) {
     console.error(error.message);
+    // Return error response
     return errorResponse(
       res,
-      HTTP_STATUS_CODE.SERVER_ERROR,
-      HTTP_RESPONSE_MESSAGE.SERVER_ERROR
+      HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR,
+      HTTP_RESPONSE_MESSAGE.INTERNAL_SERVER_ERROR
     );
   }
 };
@@ -58,8 +67,10 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    // Find the user by email
     let user = await User.findOne({ email });
 
+    // If user not found, return invalid credentials error
     if (!user) {
       return errorResponse(
         res,
@@ -68,8 +79,10 @@ const login = async (req, res) => {
       );
     }
 
+    // Check if the provided password matches the stored password hash
     const isMatch = await bcrypt.compare(password, user.password);
 
+    // If passwords don't match, return invalid credentials error
     if (!isMatch) {
       return errorResponse(
         res,
@@ -78,7 +91,7 @@ const login = async (req, res) => {
       );
     }
 
-    let token = null; // Initialize token to null
+    let token = null;
 
     // Check if the user already has a token in the UserToken model
     let existingUserToken = await UserToken.findOne({ userId: user._id });
@@ -87,7 +100,7 @@ const login = async (req, res) => {
     if (existingUserToken) {
       existingUserToken.token = generateToken({ id: user.id });
       await existingUserToken.save();
-      token = existingUserToken.token; // Set token variable here
+      token = existingUserToken.token;
     } else {
       // If the user doesn't have a token, create a new one
       token = generateToken({ id: user.id });
@@ -100,6 +113,7 @@ const login = async (req, res) => {
       await userToken.save();
     }
 
+    // Prepare response data
     const responseData = {
       user: {
         _id: user._id,
@@ -108,6 +122,7 @@ const login = async (req, res) => {
       token: token,
     };
 
+    // Prepare metadata
     const metadata = {
       timestamp: new Date().toISOString(),
       ipAddress: req.ip,
@@ -116,6 +131,7 @@ const login = async (req, res) => {
       baseUrl: req.baseUrl,
     };
 
+    // Return success response
     return successResponse(
       res,
       HTTP_STATUS_CODE.OK,
@@ -124,11 +140,14 @@ const login = async (req, res) => {
       metadata
     );
   } catch (error) {
-    console.error(error.message);
+    // Log the error for debugging
+    console.error("Error in login function:", error);
+
+    // Return a generic server error response
     return errorResponse(
       res,
-      HTTP_STATUS_CODE.SERVER_ERROR,
-      HTTP_RESPONSE_MESSAGE.SERVER_ERROR
+      HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR,
+      HTTP_RESPONSE_MESSAGE.INTERNAL_SERVER_ERROR
     );
   }
 };
@@ -145,27 +164,35 @@ const logout = async (req, res) => {
   }
 
   try {
-    // Check if the token exists in the UserToken model
+    // Check if the token exists in the database
     const existingToken = await UserToken.findOne({ token });
 
-    // If the token does not exist, return response indicating user is already logged out
+    // If the token doesn't exist, return success response indicating user is already logged out
     if (!existingToken) {
-      return errorResponse(
+      const metadata = {
+        timestamp: new Date().toISOString(),
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+        route: req.route.path,
+        baseUrl: req.baseUrl,
+      };
+
+      return successResponse(
         res,
-        HTTP_STATUS_CODE.BAD_REQUEST,
-        HTTP_RESPONSE_MESSAGE.ALREADY_LOGGED_OUT
+        HTTP_STATUS_CODE.OK,
+        HTTP_RESPONSE_MESSAGE.ALREADY_LOGGED_OUT,
+        metadata
       );
     }
-
-    // If the token exists, delete it from the UserToken model
+    // Delete the token from the database
     await UserToken.findOneAndDelete({ token });
 
     const metadata = {
-      timestamp: new Date().toISOString(), // Timestamp
-      ipAddress: req.ip, // User's IP address
-      userAgent: req.headers["user-agent"], // User agent
-      route: req.route.path, // Route being called
-      baseUrl: req.baseUrl, // Base URL
+      timestamp: new Date().toISOString(),
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      route: req.route.path,
+      baseUrl: req.baseUrl,
     };
 
     return successResponse(
@@ -177,11 +204,12 @@ const logout = async (req, res) => {
   } catch (error) {
     return errorResponse(
       res,
-      HTTP_STATUS_CODE.SERVER_ERROR,
-      HTTP_RESPONSE_MESSAGE.SERVER_ERROR
+      HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR,
+      HTTP_RESPONSE_MESSAGE.INTERNAL_SERVER_ERROR
     );
   }
 };
+
 
 
 
