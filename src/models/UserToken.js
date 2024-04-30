@@ -11,6 +11,9 @@ const userTokenSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  expires_at: {
+    type: Date,
+  },
 });
 
 module.exports = mongoose.model("UserToken", userTokenSchema);
