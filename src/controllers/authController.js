@@ -105,14 +105,23 @@ const login = async (req, res) => {
         _id: user._id,
         email: user.email,
       },
-      token: token, // Use token variable here
+      token: token,
+    };
+
+    const metadata = {
+      timestamp: new Date().toISOString(),
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      route: req.route.path,
+      baseUrl: req.baseUrl,
     };
 
     return successResponse(
       res,
       HTTP_STATUS_CODE.OK,
       responseData,
-      HTTP_RESPONSE_MESSAGE.USER_LOGGED_IN_SUCCESS
+      HTTP_RESPONSE_MESSAGE.USER_LOGGED_IN_SUCCESS,
+      metadata
     );
   } catch (error) {
     console.error(error.message);
@@ -141,7 +150,6 @@ const logout = async (req, res) => {
 
     // If the token does not exist, return response indicating user is already logged out
     if (!existingToken) {
-      console.log(existingToken);
       return errorResponse(
         res,
         HTTP_STATUS_CODE.BAD_REQUEST,
@@ -152,13 +160,21 @@ const logout = async (req, res) => {
     // If the token exists, delete it from the UserToken model
     await UserToken.findOneAndDelete({ token });
 
+    const metadata = {
+      timestamp: new Date().toISOString(), // Timestamp
+      ipAddress: req.ip, // User's IP address
+      userAgent: req.headers["user-agent"], // User agent
+      route: req.route.path, // Route being called
+      baseUrl: req.baseUrl, // Base URL
+    };
+
     return successResponse(
       res,
       HTTP_STATUS_CODE.OK,
-      HTTP_RESPONSE_MESSAGE.LOGGED_OUT_SUCCESS
+      HTTP_RESPONSE_MESSAGE.LOGGED_OUT_SUCCESS,
+      metadata
     );
   } catch (error) {
-    console.error(error.message);
     return errorResponse(
       res,
       HTTP_STATUS_CODE.SERVER_ERROR,
@@ -166,6 +182,8 @@ const logout = async (req, res) => {
     );
   }
 };
+
+
 
 module.exports = {
   register,
